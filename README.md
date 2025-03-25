@@ -24,4 +24,4 @@ an easy to use script for wrapping files into self-dropping HTML payloads to byp
 
 ## Author
 
-Written by **b3rito** at mes3hacklab & GioPpeTto
+Written by **b3rito** at mes3hacklab & **GioPpeTto**
