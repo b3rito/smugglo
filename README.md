@@ -1,6 +1,8 @@
 # smugglo
 
-an easy to use script for wrapping files into self-dropping HTML payloads to bypass content filters
+An easy-to-use script for wrapping files into self-dropping HTML payloads to bypass content filters.
+
+**Version:** 1.0.0
 
 ## Features
 
@@ -21,6 +23,12 @@ an easy to use script for wrapping files into self-dropping HTML payloads to byp
    - **Hex Encoding**
 3. **Generate HTML:** Click the button and smugglo wraps your file into a self-contained HTML file.
 4. **Automatic Extraction:** When the HTML payload is opened in a browser, it automatically decodes/decrypts the embedded file and triggers its download.
+
+## Live Demo
+
+Try smugglo directly in your browser:
+
+[https://b3rito.github.io/smugglo/](https://b3rito.github.io/smugglo/)
 
 ## Author
 
